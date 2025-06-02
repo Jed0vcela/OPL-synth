@@ -32,23 +32,16 @@ sustain = 0
 relase = 0
 feedback = 0
 frequency_block = 4 #can be used to select octave
+waveform = 1
 arr_notes = [345, 365, 387, 410, 434 ,460 , 487, 516, 547, 580, 614, 651, 0, 0, 0, 0, 0, 0]	#note frequency number select for each key
 
 array2 = [0, 0, 0, 0, 0, 0, 0, 0, 6, 5, 7, 0, 3, 2, 1, 0, ]
 
-rx_buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]
+rx_buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+rx_buttons_previous = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 arr_byte_but = bytearray([0b0010_1000,0b0011_1000,0b0011_0000,0b0000_0101,0b0000_0110])
-#print("opl 3")
 
-#Two-operator Melodic and Percussion Mode - offsety pro jednotlive kanaly
-# --------------------------------------------------
-#  Channel        0   1   2   3   4   5     9  10  11  12  13  14  15  16  17    BD  SD  TT  CY  HH
-#  Operator 1    00  01  02  06  07  08    18  19  20  24  25  26  30  31  32    12  16  14  17  13
-#  Operator 2    03  04  05  09  10  11    21  22  23  27  28  29  33  34  35    15  -   -   -   -
-#op1_offset = [0x00, 0x01, 0x02, 0x06, 0x07, 0x08,  0x12, 0x13, 0x14, 0x18, 0x19, 0x1A, 0x1E, 0x1F, 0x20,   0x0C, 0x10, 0x0E, 0x11, 0x0D]
-#op2_offset = [0x03, 0x04, 0x05, 0x09, 0x0A, 0x0B,  0x15, 0x16, 0x17, 0x1B, 0x1C, 0x1D, 0x21, 0x22, 0x23,   0x0F, 0x00, 0x00, 0x00, 0x00]
-
-#Two-operator Melodic - offsety pro jednotlive kanaly
+#Two-operator Melodic mode - offsety pro jednotlive kanaly
 # --------------------------------------------------
 #  Channel    0     1      2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17
 #  Operator 1 00    01     02    06    07    08    12    13    14    18    19    20    24    25    26    30    31    32      
@@ -136,27 +129,19 @@ def opl3_init(frequency, offset): #channel offset, frequency select
     
     
 def opl3_play(op1_offset, op2_offset, key , frequency, num): #operator offsets, key on , frequency select, array index
-    opl3_write(0x20 + op1_offset, 0x06, 0x04)  # Set operator tremolo, vibrato, sus, KSR, op 1 frequency multiplier
-    opl3_write(0x40 + op1_offset, 0b0111_1000, 0b0111_1000)  # Set operator 1 key scale level, attenuation
-    opl3_write(0x60 + op1_offset, (attack<<4) | decay, (attack<<4) | decay)  # Set operator amplitude envelope parameters
-    opl3_write(0x80 + op1_offset, (sustain<<4) | relase, (sustain<<4) | relase)  # Set operator amplitude envelope parameters
+    if 1:
+        opl3_write(0x20 + op1_offset, 0x06, 0x04)  # Set operator tremolo, vibrato, sus, KSR, op 1 frequency multiplier
+        opl3_write(0x40 + op1_offset, 0b0111_1000, 0b0111_1000)  # Set operator 1 key scale level, attenuation
+        opl3_write(0x60 + op1_offset, (attack<<4) | decay, (attack<<4) | decay)  # Set operator amplitude envelope parameters
+        opl3_write(0x80 + op1_offset, (sustain<<4) | relase, (sustain<<4) | relase)  # Set operator amplitude envelope parameters
     
-    #opl3_write(0xa0 + min(num , 8), ((frequency<<2)>>2), ((frequency<<2)>>2))  # Set frequency number
-    #opl3_write(0xb0 + min(num , 8), (arr_key[min(num , 8)]<<5)|(frequency>>8), (arr_key[num]<<5) | (frequency>>8))  # Turn the voice on; set the octave and freq MSB
-    #opl3_write(0xc0 + min(num , 8), 0b11110000 | (feedback<<1) | 0, 0b11110000 | (feedback<<1) | 0)  # feedback , algoritmh
+        opl3_write(0x20 + op2_offset, 0x02, 0x02)  # Set the carrier's multiple to 1
+        opl3_write(0x40 + op2_offset, 0x00, 0x00)  # Set the carrier to maximum volume (about 47 dB)
+        opl3_write(0x60 + op2_offset, (attack<<4) | decay, (attack<<4) | decay)  # Carrier attack:  quick;   decay:   long
+        opl3_write(0x80 + op2_offset, (sustain<<4) | relase, (sustain<<4) | relase)  # Carrier sustain: medium;  release: medium
     
-    opl3_write(0x20 + op2_offset, 0x02, 0x02)  # Set the carrier's multiple to 1
-    opl3_write(0x40 + op2_offset, 0x00, 0x00)  # Set the carrier to maximum volume (about 47 dB)
-    opl3_write(0x60 + op2_offset, (attack<<4) | decay, (attack<<4) | decay)  # Carrier attack:  quick;   decay:   long
-    opl3_write(0x80 + op2_offset, (sustain<<4) | relase, (sustain<<4) | relase)  # Carrier sustain: medium;  release: medium
-    
-    #opl3_write(0xbd, 0x20 | (rx_buttons[0] <<4) | (rx_buttons[1] <<3) | (rx_buttons[2] <<2) | (rx_buttons[3] <<1)| (rx_buttons[4]), 0x00)  #percussion mode and BD/SD/TT/CY/HH On
-    
-    opl3_write(0xe0 + op2_offset, 0x01, 0x03)  #
-    #opl3_write(0xe0, 0x00, 0x01)  # 
-
-    #opl3_write(0xE0 + offset, 0xc0, 0xc0)
-    #time.sleep(0.2)
+        opl3_write(0xe0 + op1_offset, waveform, waveform)  #
+        opl3_write(0xe0 + op2_offset, waveform, waveform)  #
 
 def opl3_key_on():
     for num in range(9):
@@ -201,6 +186,7 @@ def analog_read():
             
 
 def button_read():
+    global waveform, frequency_block
     load.value(0); load.value(1)  # Single-line pulse
     cs1.value(0)
     data = spi1.read(2, 0x00)
@@ -209,7 +195,27 @@ def button_read():
     data_int = int.from_bytes(data, 'big')
     for x in range(16):
         rx_buttons[x] = (data_int | button_mask[x])!=0xffff
+        
+    if rx_buttons[0]==1 and rx_buttons_previous[0]==0:
+        waveform = waveform+1
+    if rx_buttons[1]==1 and rx_buttons_previous[1]==0:
+        waveform = waveform-1
+    if waveform < 0:
+        waveform = 7
+    if waveform > 7:
+        waveform = 0
+        
+    if rx_buttons[2]==1 and rx_buttons_previous[2]==0:
+        frequency_block = frequency_block+1
+    if rx_buttons[3]==1 and rx_buttons_previous[3]==0:
+        frequency_block = frequency_block-1
+    if frequency_block < 0:
+        frequency_block = 7
+    if frequency_block > 7:
+        frequency_block = 0
     #return [(int.from_bytes(data, 'big') >> (15 - i)) & 1 for i in range(16)]
+    for x in range(16):
+        rx_buttons_previous[x] = rx_buttons[x]
 
 
 opl_reset()
@@ -220,7 +226,8 @@ while True:
     analog_read()
     button_read()
     #print(arr_analog_pot)
-    #print(arr_key)
+    print(arr_key)
+    #print(feedback)
     #print(bin(0x20 | (rx_buttons[0] <<4) | (rx_buttons[1] <<3) | (rx_buttons[2] <<2) | (rx_buttons[3] <<1) | (rx_buttons[4])))
     #print(button_read())
 #    print(rx_buttons)
@@ -231,13 +238,7 @@ while True:
         #print(op1_offset[num], op2_offset[num], arr_key[num])
     opl3_key_on()
     
-    #print("0")    
-    #time.sleep_us(90)
-    
-    
-#   opl3_write(0xa0, arr_analog_pot[0], arr_analog_pot[0])
-    #opl3_write(0xa0 + 1, arr_analog_pot[1], arr_analog_pot[1])
-    #for button_number in range(len(button_read())):
-    #    if button_read()[button_number] == 0:  # Check if the button is pressed
-     #       opl3_write(0xe3, 0x00, 0x00 + array2[button_number])
-      #      opl3_write(0xe4, 0x00, 0x00 + array2[button_number])
+    print("0")    
+    #time.sleep_us(200000)
+
+
